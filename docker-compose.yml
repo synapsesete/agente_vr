@@ -1,0 +1,55 @@
+version: '3.8'
+
+volumes:
+  ollama_storage:
+
+x-ollama: &service-ollama
+  image: ollama/ollama:latest
+  container_name: ollama
+  restart: unless-stopped
+  ports:
+    - 11434:11434
+  volumes:
+  - ollama_storage:/root/.ollama
+
+x-init-ollama: &init-ollama
+  image: ollama/ollama:latest
+  container_name: ollama-pull-llm
+  volumes:
+    - ollama_storage:/root/.ollama
+  entrypoint: /bin/sh
+  environment:
+    - OLLAMA_HOST=ollama:11434
+  command:
+    - "-c"
+    - "sleep 3; ollama pull qwen3; ollama pull llama3-groq-tool-use;"
+
+services:
+
+  ollama-cpu:
+    <<: *service-ollama
+
+  ollama:
+    <<: *init-ollama
+    depends_on:
+      - ollama-cpu
+
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ollama-webui
+    volumes:
+      - ./ollama/ollama-webui:/app/backend/data
+    depends_on:
+      - ollama
+    ports:
+      - 8080:8080
+    environment: # https://docs.openwebui.com/getting-started/env-configuration#default_models
+      - OLLAMA_BASE_URLS=http://ollama:11434 #comma separated ollama hosts
+      - ENV=dev
+      - WEBUI_AUTH=False
+      - WEBUI_NAME=valiantlynx AI
+      - WEBUI_URL=http://localhost:8080
+      - WEBUI_SECRET_KEY=t0p-s3cr3t
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped

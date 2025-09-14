@@ -1,0 +1,14 @@
+langchain-community
+langchain_decorators
+langchain
+langchain-experimental
+langchain-ollama
+langchain-google-genai
+langchainhub
+langsmith
+python-dotenv
+pytest
+pytest-csv-params
+black
+isort
+streamlit
