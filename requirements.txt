@@ -12,3 +12,5 @@ pytest-csv-params
 black
 isort
 streamlit
+pandas
+openpyxl

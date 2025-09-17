@@ -7,8 +7,7 @@ from langchain.agents import AgentExecutor, create_react_agent
 from langchain_core.tools import tool, Tool
 from rsa import decrypt
 
-from ferramentas import UnzipFileTool, CheckFileIsAlreadyUnziped
-
+from ferramentas import *
 
 class AgenteVR:
 
@@ -38,7 +37,13 @@ class AgenteVR:
         from langchain_community.agent_toolkits import FileManagementToolkit
 
         toolkit = FileManagementToolkit(selected_tools=["copy_file"])
-        tools = [UnzipFileTool(), CheckFileIsAlreadyUnziped()]
+        tools = [
+            UnzipFileTool(),
+            ReunirDadosTool(),
+            ObterDadosTool(),
+            EscreverDadosNaPlanilhaTool(),
+            ExtrairDadosColunasTool()
+        ]
         tools.extend(toolkit.get_tools())
         return tools
 
