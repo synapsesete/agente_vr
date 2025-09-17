@@ -162,28 +162,57 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
 #        nome_aba_planilha_destino: Optional[str] = None,
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
+        
 
         logger.info(f"Exportando os dados oriundos da planilha {path_origem} para a planilha final em {path_destino}...")
 
         wb_destino = openpyxl.load_workbook(path_destino)
 
         ws_destino = wb_destino.active
-        i = self.__index_first_empty_row(ws_destino)
 
         wb_origem = openpyxl.load_workbook(path_origem)
         ws_origem = wb_origem.active
 
+        #Agora, para cada coluna header de origem, vamos procurar a posicao correspondente na coluna destino:
+        header_destino = [cell.value for cell in ws_destino[2] if ws_destino[2]!='Unnamed']
+        header_origem = [cell.value for cell in ws_origem[1] if ws_origem[1]!='Unnamed']
+
+        logger.debug(f"Header origem = {header_origem} e header destino = {header_destino}")
+
+        i = self.__index_first_empty_row(ws_destino)
+
         for row in ws_origem.iter_rows(min_row=2):
-            j = 1
-            for cell in row:            
-                ws_destino.cell(row=i,column=j,value=cell.value)
-                j += 1
+            for j_origem in range(len(row)):
+                if header_origem[j_origem]:
+                    j_destino = self.__index_matching_col(header_origem[j_origem],header_destino)
+                    if j_destino != None:
+                        cell_origem = row[j_origem]
+                        logger.debug(f"Escrevendo na planilha destino o valor {cell_origem.value} na linha {i} e coluna {j_destino+1}...")
+                        ws_destino.cell(row=i,column=j_destino+1,value=cell_origem.value)
             i += 1
 
         wb_destino.save(path_destino)
 
-        return path_destino
+        logger.info(f"Planilha {path_destino} preenchida.")
 
+        return path_destino
+    
+
+    def __index_matching_col(self, word:str, header:list[str]) -> Optional[int]:
+        from fuzzywuzzy import fuzz
+        logger.debug(f"Buscando o índice no header {header} com outra palavra que se case com {word}...")
+        for j in range (len(header)):
+            header_word = header[j]
+            score = fuzz.partial_ratio(header_word,word)
+            logger.debug(f"Score de similaridade entre as palavras {header_word} e {word}: {score}")
+            if (score >= 80):
+                logger.debug(f"As palavras {header_word} e {word} casaram! O índice correspondente na lista é {j}!")
+                return j
+        
+        logger.debug(f"Infelizmente não localizei similaridade da palavra {word} com alguma da lista {header}!")
+        return None
+
+            
 
     def __index_first_empty_row(self,ws: type[Worksheet]) -> int:
         for row_index in range(1, ws.max_row + 2):  # Iterate up to one row beyond max_row
@@ -207,14 +236,13 @@ class PlanilhaTemporaria:
 
     def exportar_dados_planilha_temporaria(self,df: type[pd.DataFrame]) -> str:
         excel_destino =  os.path.join(self.__temp_dir,"output.xlsx")
-        df.to_excel(excel_destino)
+        df.to_excel(excel_destino,index=True,index_label='Matricula')
         logger.info(f"Os dados foram escritos com sucesso em {excel_destino}")
         return excel_destino    
 
     def __cleanup_function(self,message):
         logger.info(message)
         try:
-            shutil.rmtree(self.__temp_dir)
+           shutil.rmtree(self.__temp_dir)
         except IOError:
             sys.stderr.write('Failed to clean up temp dir {}'.format(self.__temp_dir))
-
