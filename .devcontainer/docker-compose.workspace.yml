@@ -3,7 +3,7 @@ services:
   workspace:
     build: 
       context: ../
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-devcontainer
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock  
       - ../..:/workspaces:cached

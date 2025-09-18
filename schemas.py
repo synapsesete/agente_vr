@@ -30,6 +30,9 @@ class ExtrairDadosColunasInput(BaseModel):
         description="Os nomes das colunas na planilha cujos dados deseja-se extrair."
     )
 
+class RemoverDadosNaPlanilhaInput(BaseModel):
+        path_planilha_dados_colaboradores: str = Field(description="A planilha com os dados dos colaboradores a serem removidos.")
+        cargos: str = Field(description="Os cargos cujos colaboradores serão removidos.")
 
 class EscreverDadosNaPlanilhaInput(BaseModel):
     path_origem: str = Field(
@@ -42,8 +45,6 @@ class EscreverDadosNaPlanilhaInput(BaseModel):
     percentual_custo_empresa: float = Field(description="Percentual de custo da empresa.")
     percentual_custo_empregado: float  = Field(description="Percentual de custo do empregado ou profissional.")
 
-
-#    nome_aba_planilha_destino: Optional[str] = Field(description="O nome da aba da planilha de destino (opcional).")
 
 
 class CalcularQuantidadeDiasUteisInput(BaseModel):

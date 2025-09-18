@@ -2,13 +2,15 @@ import logging
 import os
 import sys
 from typing import List, Optional
-from unittest.mock import Base
 
 import pandas as pd
 from langchain.callbacks.manager import CallbackManagerForToolRun
 from langchain_core.tools.base import BaseTool
-from pydantic import BaseModel, Field
-from regex import F
+from pydantic import BaseModel
+
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 from schemas import *
 
@@ -46,20 +48,22 @@ class UnzipFileTool(BaseTool):
         import zipfile
         from pathlib import Path
 
+        diretorio_destino = os.environ['OUTPUT_FOLDER']
+
         logging.info(
-            f"Descomprimindo o arquivo {nome_arquivo} dentro da pasta {diretorio}..."
+            f"Descomprimindo o arquivo {nome_arquivo} localizado na pasta {diretorio} para o diretório destino {diretorio_destino}..."
         )
 
         full_path = os.path.join(diretorio, nome_arquivo)
 
         with zipfile.ZipFile(full_path, "r") as zip_ref:
-            zip_ref.extractall(diretorio)
+            zip_ref.extractall(diretorio_destino)
 
-        directory_path = Path(diretorio)
+        directory_destino_path = Path(diretorio_destino)
 
         paths_arquivos_descompactados = [
-            os.path.join(diretorio, entry.name)
-            for entry in directory_path.iterdir()
+            os.path.join(diretorio_destino, entry.name)
+            for entry in directory_destino_path.iterdir()
             if entry.is_file()
         ]
 
@@ -132,8 +136,30 @@ class EstadosDosSindicatosTool(BaseTool):
         )
 
 
+class RemoverColaboradoresNaPlanilhaTool(BaseTool):
+    name: str = "RemoverDadosNaPlanilha"
+    description: str = (
+        "Remove dados de colaboradores em função dos cargos enumerados."
+    )
+    return_direct: bool = False
+    args_schema: type[BaseModel] = RemoverDadosNaPlanilhaInput
+
+    def _run(
+             self,
+            path_planilha_dados_colaboradores: str,
+            cargos: str,
+            run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        
+        cargos_list = cargos.split(',')
+        logger.info("Removendo colaboradores da planilha %s em relação aos cargos %s...",path_planilha_dados_colaboradores,cargos_list)
+
+        excel.remover_registros_planilha_por_valores_especificos_coluna(path_planilha_dados_colaboradores,'Cargo',cargos_list)
+        excel.remover_registros_planilha_por_valores_especificos_coluna(path_planilha_dados_colaboradores,'Situação',cargos_list)
+
+
 class EscreverDadosNaPlanilhaTool(BaseTool):
-    name: str = "EscreverDadosNaPlanilhaTool"
+    name: str = "EscreverDadosNaPlanilha"
     description: str = (
         "Escreve ou copia os dados em uma planilha destino, completando a mesma."
     )
@@ -195,6 +221,18 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
             ws_destino[f'I{row_num}'].value = f'=$G{row_num}*{percentual_custo_empregado}'
 
 
+        #Vamos remover todos os registros incompletos:
+        indice_matricula = excel.buscar_indice_row_por_similaridade("Matricula", ws_destino[2]) + 1
+        indice_sindicato = excel.buscar_indice_row_por_similaridade("Sindicato", ws_destino[2]) + 1
+        for row_num in range(5,ws_destino.max_row):
+            cadastro_value = ws_destino.cell(row=row_num,column=indice_matricula).value
+            if cadastro_value==None:
+                ws_destino.delete_rows(row_num,1)
+            sindicato_value = ws_destino.cell(row=row_num,column=indice_sindicato).value
+            logger.info("sindicato_value=%s",sindicato_value)
+            if sindicato_value==None:
+                ws_destino.delete_rows(row_num,1)
+
         excel.autofit(ws_destino)
 
         wb_destino.save(path_destino)
@@ -224,7 +262,7 @@ class PlanilhaTemporaria:
         return excel_destino
 
     def obter_caminho_arquivo_temporario(self, filename: str) -> str:
-        #        return  os.path.join('data/',filename)
+#        return  os.path.join('data/',filename)
         return os.path.join(self.__temp_dir, filename)
 
     def __cleanup_function(self, message):

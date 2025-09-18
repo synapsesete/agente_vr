@@ -8,13 +8,44 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 from openpyxl.worksheet.worksheet import Worksheet
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
-
 logger = logging.getLogger(__name__)
+
+
+def remover_registros_planilha_por_valores_especificos_coluna(planilha_origem: str,token: str,valores:list[str],indice_planilha_origem=1) -> str:
+
+    wb_origem = openpyxl.load_workbook(planilha_origem)
+    ws_origem = wb_origem.active
+    __remover_registros_worksheets_por_valores_especificos_coluna(ws_origem,token,valores,indice_planilha_origem)
+
+    wb_origem.save(planilha_origem)
+
+    return planilha_origem
+    
+
+def __remover_registros_worksheets_por_valores_especificos_coluna(ws_origem: type[Worksheet], token: str,valores:list[str],indice_planilha_origem=1) -> None:
+
+    first_row_origem = ws_origem[indice_planilha_origem]
+
+    indices = buscar_todos_indices_row_por_similaridade(token,first_row_origem)
+
+    if indices:
+        logger.debug("Todos os indices: %s",indices)
+        for i in indices:
+            nome_coluna = first_row_origem[i].value
+            logger.debug("O nome da coluna que encontrei se chama %s",nome_coluna)
+            for row_index in range(indice_planilha_origem+1, ws_origem.max_row+1):
+                valor_celula = ws_origem.cell(row=row_index,column=i+1).value
+                logger.debug("valor da celula [%d,%d] = %s",row_index,i+1,valor_celula)
+                if valor_celula!=None:
+                    for valor in valores:
+                        score = fuzz.ratio(valor.strip().lower(), str(valor_celula).strip().lower())
+                        if (score>50):
+                            logger.debug("O valor %s casa com o valor %s!",valor_celula,valor)
+                            ws_origem.delete_rows(row_index,1)
+                            __remover_registros_worksheets_por_valores_especificos_coluna(ws_origem,token,valores,indice_planilha_origem)
+                            return 
+        
+
 
 
 def preencher_planilha(
@@ -72,6 +103,39 @@ def preencher_planilha(
             )
 
     wb_destino.save(planilha_destino)
+
+def buscar_todos_indices_row_por_similaridade(word: str, row: type[tuple]) -> Optional[tuple]:
+
+    indices = []
+
+    for j in range(len(row)):
+        cell = row[j]
+        logger.debug("Valor da celula: %s", cell.value)
+        if cell.data_type == "s":
+            word_cell = cell.value
+            logger.debug(
+                "Verificando se a palavra %s da linha destino casa com a palavra %s...",
+                word_cell,
+                word,
+            )
+            score = fuzz.partial_ratio(
+                word.strip().lower(), str(word_cell).strip().lower()
+            )
+            if score > 90:
+                score_full = fuzz.ratio(
+                    word.strip().lower(), str(word_cell).strip().lower()
+                )
+                logger.debug(
+                    "As palavras %s e %s possuem o score %d e score-full %d. O indice da coluna é %d",
+                    word,
+                    word_cell,
+                    score,
+                    score_full,
+                    j,
+                )
+                indices.append(j)
+
+    return tuple(indices)
 
 
 def buscar_indice_row_por_similaridade(word: str, row: type[tuple]) -> Optional[int]:
@@ -258,5 +322,4 @@ def buscar_indices_merging_por_similaridade(
 
 
 if __name__ == "__main__":
-    mesclar(["data/merged.xlsx", "data/Base sindicato x valor.xlsx"])
-#    preencher_planilha('data/merged.xlsx','data/VR MENSAL 05.2025.xlsx',1,2,max_col_planilha_destino=6)
+    remover_registros_planilha_por_valores_especificos_coluna("data/merged.xlsx",'Cargo',['desenvolvedores','estagiários','diretores'])

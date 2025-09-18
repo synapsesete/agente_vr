@@ -1,10 +1,12 @@
 import os
-from typing import Any, List
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from typing import List
 
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain_core.runnables.base import Runnable
-from langchain_core.tools import Tool, tool
-from rsa import decrypt
 
 from ferramentas import *
 
@@ -42,14 +44,12 @@ class AgenteVR:
             ReunirDadosTool(),
             EscreverDadosNaPlanilhaTool(),
             EstadosDosSindicatosTool(),
+            RemoverColaboradoresNaPlanilhaTool()
         ]
         tools.extend(toolkit.get_tools())
         return tools
 
     def _load_llm(self) -> Runnable:
-        from dotenv import load_dotenv
-
-        load_dotenv()
         from langchain_google_genai import ChatGoogleGenerativeAI
         from langchain_ollama import ChatOllama
 

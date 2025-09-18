@@ -7,11 +7,8 @@ langchain-google-genai
 langchainhub
 langsmith
 python-dotenv
-pytest
-pytest-csv-params
 black
 isort
-streamlit
 pandas
 openpyxl
 python-Levenshtein
