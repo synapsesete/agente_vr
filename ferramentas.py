@@ -229,7 +229,6 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
             if cadastro_value==None:
                 ws_destino.delete_rows(row_num,1)
             sindicato_value = ws_destino.cell(row=row_num,column=indice_sindicato).value
-            logger.info("sindicato_value=%s",sindicato_value)
             if sindicato_value==None:
                 ws_destino.delete_rows(row_num,1)
 
