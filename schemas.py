@@ -38,7 +38,9 @@ class EscreverDadosNaPlanilhaInput(BaseModel):
     path_destino: str = Field(
         description="O caminho do arquivo da planilha cujos dados serão preenchidos ou completados."
     )
-    competencia: str = Field(description="A competência dos dados em mes e ano.")
+    competencia: str = Field(description="A competência dos dados em mes e ano."),
+    percentual_custo_empresa: float = Field(description="Percentual de custo da empresa.")
+    percentual_custo_empregado: float  = Field(description="Percentual de custo do empregado ou profissional.")
 
 
 #    nome_aba_planilha_destino: Optional[str] = Field(description="O nome da aba da planilha de destino (opcional).")

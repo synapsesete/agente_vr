@@ -6,6 +6,6 @@ Instruções:
 2. Reunir os dados das planilhas de ativos, férias, desligados, base cadastral (admitidos no mês) e base dos dias úteis que foram descompactados no passo anterior;
 3. Em função de cada sindicato na planilha de base de dias uteis, obter o estado correspondente e reunir com os dados anteriores;
 4. Reunir os valores de cada estado com os dados anteriores a partir da planilha de valores;
-5. Completar a planilha final VR MENSAL 05.2025.xlsx que foi extraída no passo 1 com os dados resultantes dos items anteriores para a competência de maio de 2025.
+5. Completar a planilha final VR MENSAL 05.2025.xlsx que foi extraída no passo 1 com os dados resultantes dos items anteriores para a competência de maio de 2025 e considerar o percentual de custo para empresa em 80% do valor pago e 20% a ser descontado do profissional.
 
 Finalize somente após você executar todas as etapas listadas acima.

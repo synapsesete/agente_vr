@@ -145,11 +145,13 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
         path_origem: str,
         path_destino: str,
         competencia: str,
+        percentual_custo_empresa: float,
+        percentual_custo_empregado: float,
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
 
         logger.info(
-            f"Exportando os dados oriundos da planilha {path_origem} para a planilha final em {path_destino} e competencia {competencia}..."
+            f"Exportando os dados oriundos da planilha {path_origem} para a planilha final em {path_destino} e competencia {competencia} com os percentuais de {percentual_custo_empresa}% para empresa e {percentual_custo_empregado}% para o empregado..."
         )
 
         excel.preencher_planilha(
@@ -180,6 +182,18 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
 
         # Vamos definir a formula total:
         ws_destino["G1"].value = f"=SUM($G2:$G{ws_destino.max_row})"
+
+        if percentual_custo_empresa > 1:
+            percentual_custo_empresa /= 100.
+
+        if percentual_custo_empregado > 1:
+            percentual_custo_empregado /= 100.
+
+        for row_num in range(3,ws_destino.max_row):
+            ws_destino[f'G{row_num}'].value = f'=$E{row_num}*$F{row_num}'
+            ws_destino[f'H{row_num}'].value = f'=$G{row_num}*{percentual_custo_empresa}'
+            ws_destino[f'I{row_num}'].value = f'=$G{row_num}*{percentual_custo_empregado}'
+
 
         excel.autofit(ws_destino)
 
