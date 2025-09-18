@@ -1,15 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
+import re
 from typing import Union
 
+from langchain.agents.agent import AgentOutputParser
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.exceptions import OutputParserException
-
-from langchain.agents.agent import AgentOutputParser
-
-import re
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +45,7 @@ class CustomAgentOutputParser(AgentOutputParser):
             action_input_block = self._parse_block(action_input_prefix, text)
             logger.debug("action_input_block: |%s|", action_input_block)
             action_input = action_input_block[len(action_input_prefix) :]
-            action_input = json.loads(action_input.replace("'","\""))
+            action_input = json.loads(action_input.replace("'", '"'))
             logger.debug("Action Input: |%s|", action_input)
 
             return AgentAction(action, action_input, text)

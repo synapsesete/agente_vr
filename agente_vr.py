@@ -1,13 +1,13 @@
-from typing import List, Any
 import os
-from langchain_core.runnables.base import Runnable
+from typing import Any, List
 
 from langchain.agents import AgentExecutor, create_react_agent
-
-from langchain_core.tools import tool, Tool
+from langchain_core.runnables.base import Runnable
+from langchain_core.tools import Tool, tool
 from rsa import decrypt
 
 from ferramentas import *
+
 
 class AgenteVR:
 
@@ -40,10 +40,8 @@ class AgenteVR:
         tools = [
             UnzipFileTool(),
             ReunirDadosTool(),
-#            ObterDadosTool(),
             EscreverDadosNaPlanilhaTool(),
-#            ExtrairDadosColunasTool(),
- #           CalcularQuantidadeDiasUteisTool()
+            EstadosDosSindicatosTool(),
         ]
         tools.extend(toolkit.get_tools())
         return tools
@@ -52,8 +50,8 @@ class AgenteVR:
         from dotenv import load_dotenv
 
         load_dotenv()
-        from langchain_ollama import ChatOllama
         from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_ollama import ChatOllama
 
         if os.environ.get("GOOGLE_API_KEY"):
             llm = ChatGoogleGenerativeAI(model=os.environ["LLM_MODEL"], temperature=0)

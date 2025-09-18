@@ -1,6 +1,6 @@
-from agente_vr import AgenteVR
-
 import logging
+
+from agente_vr import AgenteVR
 
 logging.basicConfig(
     level=logging.INFO,
