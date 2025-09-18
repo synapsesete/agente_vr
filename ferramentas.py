@@ -7,6 +7,7 @@ import os
 from pydantic import BaseModel, Field
 
 from langchain_core.tools.base import BaseTool
+from regex import F
 
 from schemas import *
 
@@ -20,9 +21,10 @@ if sys.version_info[0] < 3:
 else:
     from io import StringIO
 
-import csv
 import openpyxl 
 from openpyxl.worksheet.worksheet import Worksheet
+
+import excel
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +64,6 @@ class UnzipFileTool(BaseTool):
 
         return paths_arquivos_descompactados
     
-
-
 class ReunirDadosTool(BaseTool):
 
     name: str = "ReunirDados"
@@ -83,23 +83,32 @@ class ReunirDadosTool(BaseTool):
         
         logger.info(f"Reunindo os dados oriundos das planilhas localizadas em {paths_planilhas_excel} (total de {len(paths_planilhas_excel)} arquivos) ...")
 
-        dfs = []
-
-        for path_planilha_excel in paths_planilhas_excel:
-            df = pd.read_excel(path_planilha_excel,index_col=0)
-            dfs.append(df)
-
-        assert len(dfs) == len(paths_planilhas_excel)
-
-        dados_concatenados = pd.concat(dfs,axis=1)
-
-        logging.info(dados_concatenados.head())
-
-        planilha_temporaria = PlanilhaTemporaria()
-
-        return planilha_temporaria.exportar_dados_planilha_temporaria(dados_concatenados)
+        return excel.mesclar(paths_planilhas_excel,PlanilhaTemporaria().obter_caminho_arquivo_temporario("merged.xlsx"))
     
+"""
+class CalcularQuantidadeDiasUteisTool(BaseTool):
+    name: str = "CalcularQuantidadeDiasUteis"
+    description: str = "Calcula a quantidade de dias úteis por colaborador considerando como base os dias úteis por sindicato."
+    return_direct: bool = False
+    args_schema: type[BaseModel] = CalcularQuantidadeDiasUteisInput
 
+    def _run(self,
+        paths: list[str] | str,
+        dias_uteis_por_sindicato: dict[str,str] | str,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> int:
+        
+        if isinstance(paths,list):
+            paths_planilhas_excel = paths
+        else:
+            paths_planilhas_excel = [ _.strip() for _ in paths.split(",")]
+
+        logger.info(f"Calculando os dias úteis a partir das planilhas {paths} e dias úteis por sindicato {dias_uteis_por_sindicato} ...")
+
+        return 0
+"""
+    
+"""
 class ExtrairDadosColunasTool(BaseTool):
     name: str = "ExtrairDadosColunas"
     description: str = "Extrai ou obtém os dados das colunas de uma determinada planilha. Retorna o caminho da planilha em Excel cujos dados das colunas foram extraídos."
@@ -126,9 +135,8 @@ class ExtrairDadosColunasTool(BaseTool):
         df.to_excel(path)
 
         return path
-
-
-
+"""
+"""
 class ObterDadosTool(BaseTool):
     name: str = "ObterDados"
     description: str = "Obtem os dados de uma planilha determinada. Retorna o numero de linhas que esta planilha possui."
@@ -147,7 +155,7 @@ class ObterDadosTool(BaseTool):
         logger.info(f"Total de linhas: {dados.shape[0]}")
 
         return dados.shape[0]
-
+"""
 
 class EscreverDadosNaPlanilhaTool(BaseTool):
     name: str = "EscreverDadosNaPlanilhaTool"
@@ -159,12 +167,13 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
         self,
         path_origem: str,
         path_destino: str,
+        competencia: str,
 #        nome_aba_planilha_destino: Optional[str] = None,
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
         
 
-        logger.info(f"Exportando os dados oriundos da planilha {path_origem} para a planilha final em {path_destino}...")
+        logger.info(f"Exportando os dados oriundos da planilha {path_origem} para a planilha final em {path_destino} e competencia {competencia}...")
 
         wb_destino = openpyxl.load_workbook(path_destino)
 
@@ -181,6 +190,8 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
 
         i = self.__index_first_empty_row(ws_destino)
 
+        num_primeira_linha_nao_preenchida = i
+
         for row in ws_origem.iter_rows(min_row=2):
             for j_origem in range(len(row)):
                 if header_origem[j_origem]:
@@ -190,6 +201,21 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
                         logger.debug(f"Escrevendo na planilha destino o valor {cell_origem.value} na linha {i} e coluna {j_destino+1}...")
                         ws_destino.cell(row=i,column=j_destino+1,value=cell_origem.value)
             i += 1
+
+        # Preenche a compentência na coluna Competencia:
+        i = num_primeira_linha_nao_preenchida
+        j = self.__index_matching_col("Competencia",header_destino)
+        for row in ws_destino.iter_rows(min_row=num_primeira_linha_nao_preenchida):
+            if row[0].value:
+                ws_destino.cell(row=i,column=j+1,value=competencia.replace(".","/"))
+            i +=1
+
+        assert j!=None
+
+        # Vamos definir a formula total:
+        ws_destino['G1'].value = f"=SUM($G{num_primeira_linha_nao_preenchida-1}:$G{ws_destino.max_row})"
+
+        excel.autofit(ws_destino)
 
         wb_destino.save(path_destino)
 
@@ -203,7 +229,7 @@ class EscreverDadosNaPlanilhaTool(BaseTool):
         logger.debug(f"Buscando o índice no header {header} com outra palavra que se case com {word}...")
         for j in range (len(header)):
             header_word = header[j]
-            score = fuzz.partial_ratio(header_word,word)
+            score = fuzz.partial_ratio(header_word.lower(),word.lower())
             logger.debug(f"Score de similaridade entre as palavras {header_word} e {word}: {score}")
             if (score >= 80):
                 logger.debug(f"As palavras {header_word} e {word} casaram! O índice correspondente na lista é {j}!")
@@ -229,10 +255,14 @@ import tempfile
 import shutil
 import atexit
 class PlanilhaTemporaria:
-    
+
     def __init__(self):
         self.__temp_dir = tempfile.mkdtemp()
         atexit.register(self.__cleanup_function, "Closing files")
+
+    def obter_caminho_arquivo_temporario(self,filename:str) -> str:
+#        return  os.path.join('data/',filename)
+        return  os.path.join(self.__temp_dir,filename)
 
     def exportar_dados_planilha_temporaria(self,df: type[pd.DataFrame]) -> str:
         excel_destino =  os.path.join(self.__temp_dir,"output.xlsx")

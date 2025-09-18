@@ -40,9 +40,10 @@ class AgenteVR:
         tools = [
             UnzipFileTool(),
             ReunirDadosTool(),
-            ObterDadosTool(),
+#            ObterDadosTool(),
             EscreverDadosNaPlanilhaTool(),
-            ExtrairDadosColunasTool()
+#            ExtrairDadosColunasTool(),
+ #           CalcularQuantidadeDiasUteisTool()
         ]
         tools.extend(toolkit.get_tools())
         return tools
