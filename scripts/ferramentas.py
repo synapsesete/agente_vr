@@ -8,16 +8,10 @@ from langchain.callbacks.manager import CallbackManagerForToolRun
 from langchain_core.tools.base import BaseTool
 from pydantic import BaseModel
 
-import os
 from dotenv import load_dotenv
 load_dotenv()
 
 from schemas import *
-
-if sys.version_info[0] < 3:
-    from StringIO import StringIO
-else:
-    from io import StringIO
 
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
