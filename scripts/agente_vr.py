@@ -74,7 +74,7 @@ class AgenteVR:
 
     def _load_instructions(self) -> str:
 
-        prompt_path = os.path.join(".", "instructions.md")
+        prompt_path = os.environ['INSTRUCOES_PATH']
         with open(prompt_path, "r", encoding="utf-8") as f:
             custom_prompt = f.read()
 

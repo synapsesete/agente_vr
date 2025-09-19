@@ -54,7 +54,7 @@ class UnzipFileTool(BaseTool):
             f"Descomprimindo o arquivo {nome_arquivo} localizado na pasta {diretorio} para o diretório destino {diretorio_destino}..."
         )
 
-        full_path = os.path.join(diretorio, nome_arquivo)
+        full_path = os.path.join(os.environ['DATA_FOLDER'], nome_arquivo)
 
         with zipfile.ZipFile(full_path, "r") as zip_ref:
             zip_ref.extractall(diretorio_destino)

@@ -1,9 +1,7 @@
 import logging
-from importlib.resources import path
 from typing import Optional, Tuple
 
 import openpyxl
-import openpyxl.worksheet
 import pandas as pd
 from fuzzywuzzy import fuzz
 from openpyxl.worksheet.worksheet import Worksheet
